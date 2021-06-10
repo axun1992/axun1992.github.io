@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+        <script src="https://unpkg.com/vue@next"></script>
+        <!-- import CSS -->
+        <link rel="stylesheet" href="https://unpkg.com/element-plus/lib/theme-chalk/index.css">
+        <!-- import JavaScript -->
+        <script src="https://unpkg.com/element-plus/lib/index.full.js"></script>
+        <!--three.js-->
+        <script src="./yx/js/lib/three.js"></script>
+        <script src="./yx/js/lib/GLTFLoader.js"></script>
+        <script src="./yx/js/lib/OrbitControls.js"></script>
+        <!--tween.js-->
+        <script src="./yx/js/lib/tweenjs.js"></script>
+        <!-- yangxun -->  
+        <link rel="stylesheet" href="./yx/index.css">
+        <script src="./yx/js/YxDefine.js"></script>
+        <script src="./yx/js/Yx3D.js"></script>
+        <script src="./yx/js/YxView.js"></script>
+        <title>3D搭配</title>
+    </head>
+    
+    <body onload="YxMain()">
+        <div id="YxView" class="full" style="visibility: hidden;">
+            <div id="Yx3D" class="full"></div>
+            <!--左侧部件选择-->
+            <div class="part-choice">
+                <div id="info" class="inline nopadding nomargin" style="float: left;">
+                    <div>{{CurrentPart.index}}/{{Part.length}}</div>
+                    <div>{{CurrentPart.label}}</div>
+                </div>
+                <div id="part-list" style="float: left;padding-left: 30px;">
+                    <el-button icon="el-icon-s-unfold" class="inline noborder nopadding nomargin nobg" @click="click_part()"></el-button>
+                    <ul id="parts" :style="{display: PartDisplay}">
+                        <li class="part-item" v-for="i in Part" :key="i.value" @click="select_part(i.value)">
+                            {{ i.label }}
+                        </li>
+                    </ul>
+                </div>
+                <el-button icon="el-icon-caret-left" class="inline noborder nopadding nomargin nobg" style="padding-left: 10px;"></el-button>
+                <el-button icon="el-icon-caret-right" class="inline noborder nopadding nomargin nobg" style="padding-left: 10px;"></el-button>
+            </div>
+            <!--右侧按钮区-->
+            <div id="yx-btns">
+                <el-button id="yx_r_btn_0" type="text" @click="click_rightbtn(0)">手套款式</el-button>
+                <el-button id="yx_r_btn_1" type="text" @click="click_rightbtn(1)">守备位置</el-button>
+                <el-button id="yx_r_btn_2" type="text" @click="click_rightbtn(2)">皮革选择</el-button>
+                <el-button id="yx_r_btn_3" type="text" @click="click_rightbtn(3)">左右投</el-button>
+                <el-button id="yx_r_btn_4" type="text" @click="click_rightbtn(4)">版型选择</el-button>
+                <el-button id="yx_r_btn_5" type="text" @click="click_rightbtn(5)">颜色</el-button>
+                <el-button id="yx_r_btn_6" type="text" @click="click_rightbtn(6)">球档设定</el-button>
+                <el-button id="yx_r_btn_7" type="text" @click="click_rightbtn(7)">腕标设定</el-button>
+                <el-cascader-panel id="right-items" :options="CurrentRightData" :style="{display: RightItemDisplay}" @change="OnSelectRightItem"></el-cascader-panel>
+            </div>
+            <!--下方颜色板-->
+            <div id="yx-colors" :style="{display:ColorsDisplay}">
+                <div class="yx-color-cell" v-for="i in Colors" :id="'col_'+i" :style="{'background-color':'#'+i}" @click="OnSelectColor(i)">
+                    {{i}}
+                </div>
+                <el-button icon="el-icon-caret-left" class="inline noborder nopadding nomargin nobg" style="padding-left: 10px;"></el-button>
+                <el-button icon="el-icon-caret-right" class="inline noborder nopadding nomargin nobg" style="padding-left: 10px;"></el-button>
+            </div>
+        </div>
+    </body>
+</html>
