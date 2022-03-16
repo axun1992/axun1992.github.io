@@ -1,0 +1,95 @@
+[toc]
+
+# UGUI渲染分析
+## 一句话总结
+比较多，总结不了。
+
+## 主要类分析
+### Graphic
+这个抽象类代表所有可以在画布上显示出来的元素。
+它有点类似3D渲染时的一个模型，它持有材质、贴图、并负责生成网格。因此UI的渲染仍是基于网格的。
+它还提供了自身的`Raycast`检测。
+
+### CanvasRenderer
+这个组件是实际参与渲染的组件，`Graphic`在`Rebuild`时会把材质、网格提交给它。这个类未公开部分源码，不多讨论了。
+
+### CanvasUpdateRegistry
+`CanvasUpdateRegistry`是一个单例，它的功能是：
+记录下当前帧所有请求重建布局和重建图像的画布元素，并在合适的时候调用它们相应的重建函数。
+具体来说有如下几步：
+
+- 它在构造函数中监听了`Canvas.willRenderCanvases`委托，因此`Unity`内部会在合适的机时通知它进行重建过程。
+- 它维护了两个`IndexedSet<ICanvasElement>`（`IndexedSet`类似于有序的`HashSet`），分别记录当前帧请求重建布局和重建图像的画布元素（注意存储的是`ICanvasElement`而不是`Graphic`，`Graphic`是`ICanvasElement`但还有一些不可见对象也是`ICanvasElement`）。
+
+当`Canvas.willRenderCanvases`触发时，它主要执行以下操作：
+
+- 剔除两个列表中不可用的元素。
+- 对重建布局列表按`ICanvasElement`的`transform`父物体个数从少到多排序。
+- 对重建布局列表每个元素调用`Rebuild`方法。此遍历重复3次，分别是`Prelayout`、`Layout`、`PostLayout`。然后调用每个元素的`LayoutComplete`，最后清空列表。
+- 对重建图像列表每个元素调用`Rebuild`方法。此遍历重复2次，分别是`PreRender`、`LatePreRender`。然后调用每个元素的`GraphicUpdateComplete`，最后清空列表。
+
+### LayoutRebuilder
+`LayoutRebuilder`实质上是`Graphic`布局部分的逻辑，单独提成了一个类。
+可能是因为它不关心`Graphic`的显示内容，只关心其`RectTransform`，所以给单独出来了。
+注意它也是`ICanvasElement`。
+
+#### 与Graphic的关系
+那么，既然它是`Graphic`的布局逻辑而又分离在了一个单独的类，那它俩是如何联系起来的呢？答案就是它的静态方法：`MarkLayoutForRebuild(RectTransform rect)`。
+当一个`Graphic`认为自己需要重建布局时(`transform`变化，字体变化等)它会调用这个方法，方法内部创建一个`LayoutRebuilder`实例并把自己注册进`CanvasUpdateRegistry`中，因此将会在合适时机执行它的`Rebuild`方法。
+
+#### Rebuild方法
+##### 参与布局的各类实体概念
+画布元素的布局重构是比较复杂的，`UGUI`的各类`LayoutGroup`、`Fitter`、`ScrollRect`、`Text`、`Image`都是在这个方法里处理。从接口上划分，主要分为三类：
+|接口|说明|举例|
+|:-|:-|:-|
+|`ILayoutController`|用于控制`RectTransform`布局的接口|
+|`ILayoutGroup`|继承`ILayoutController`，表示控制子物体的`RectTransform`布局|各类`LayoutGroup`、`ScrollRect`|
+|`ILayoutSelfController`|继承`ILayoutController`，表示控制自身的`RectTransform`布局|各类`Fitter`|
+|`ILayoutElement`|布局元素，负责计算和提供宽高方面的数据|`Image`、`Text`、`InputField`、`ScrollRect`、`LayoutElement`、各类`LayoutGroup`|
+
+##### 重建布局
+###### 水平方向
+对目标`RectTransform`的一次布局重建会先在【水平】方向上执行以下操作：
+
+首先
+以目标`RectTransform`为层级树的根，后序遍历该树，对每个节点：
+- 如果既无`ILayoutElement`也无`ILayoutGroup`，不再向下计算。
+- 调用`CalculateLayoutInputHorizontal`以计算其水平方向数据。
+
+然后
+以目标`RectTransform`为层级树的根，先序遍历该树，对每个RectTransfom节点：
+- 如果无`ILayoutController`，不再向下计算。
+- 对节点上的所有`ILayoutSelfController`调用`SetLayoutHorizontal`（各类`Fitter`），这可能改变其自身的`RectTransform`。
+- 对节点上的其余的`ILayoutController`调用`SetLayoutHorizontal`（各类`LayoutGroup`、`ScrollRect`）,将其自身`RectTransform`数据代入去改变它的子物体。
+
+###### 竖直方向
+然后会在【竖直】方向上执行相同操作，只是
+把`CalculateLayoutInputHorizontal`改为`CalculateLayoutInputVertical`，
+把`SetLayoutHorizontal`改为`SetLayoutVertical`。
+计算和修改的是竖直方向的数据。
+
+大体上说就是计算宽高时先计算子物体，设置布局时先设置父物体。
+
+### Graphic的Rebuild
+`Graphic`的重建就是图像重建，它会在某些情况下请求重建自身的图像、将自身注册到`CanvasUpdateRegistry`、并内部标识是需要重建材质还是重建网格或两者兼有。当`CanvasUpdateRegistry`触发其`Rebuild`方法时，它会相应的提交材质或网格数据到`CanvasRenderer`中。
+Graphic的布局重建只负责请求，由`LayoutRebuilder`完成。
+
+触发图像重建的情形：
+- 父物体变更
+- 启用
+- 颜色改变
+- RectTransfom范围改变
+- 被Animation修改了属性
+- Image、RawImage设置图片
+- Image图片设置改变
+- Text字体改变、字号改变、文字改变、文字设置改变
+- Mask启禁用、设置改变
+- 修改材质
+
+触发布局重建的情形：
+- 父物体变更
+- 启用
+- RectTransfom范围改变
+- 被Animation修改了属性
+- Image、RawImage设置图片
+- Text字体改变、字号改变、文字改变、文字设置改变
