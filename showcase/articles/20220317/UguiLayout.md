@@ -1,6 +1,6 @@
 [toc]
 
-# UGUI布局
+# UGUI布局分析
 ## 前言
 这篇文章是在前文*UGUI渲染分析*的基础上，进一步探究UGUI中实际使用的几种自动布局组件的原理。
 据前文的分类，实际上可以分为以下几类，并各选一些代表出来进行分析：
@@ -44,42 +44,42 @@
     - 然后如果子物体强制填充剩余空间(`childForceExpand`)，`flexible`等于1。
 - 累加得到总的`min`、`preferred`、`flexible`尺寸并记录下来。
 ### ILayoutGroup部分
-这个部分无论水平或竖直都走到其父类的SetChildrenAlongAxis方法，它设置子布局元素的位置和大小，具体逻辑如下：
+这个部分无论水平或竖直都走到其父类的`SetChildrenAlongAxis`方法，它设置子布局元素的位置和大小，具体逻辑如下：
 - 如果布局方向与当前计算轴不同（例如水平布局计算其高度和竖直方向位置时）：
-    - 通过自身RectTransform大小和padding计算出子元素在该轴方向的【强制大小】。
+    - 通过自身`RectTransform`大小和`padding`计算出子元素在该轴方向的【强制大小】。
     - 对每个子元素设置该轴向上位置和大小。
         - 计算子物体的`min`、`preferred`、`flexible`（与上面逻辑相同）
-        - 将【强制大小】限制到子物体的min和preferred（如果flexible不为0则是自身大小）之间。
-        - 如果控制大小（controlSize），用【强制大小】设置子物体大小，结合Alignment设置位置。
+        - 将【强制大小】限制到子物体的`min`和`preferred`（如果`flexible`不为0则是自身大小）之间。
+        - 如果控制大小（`controlSize`），用【强制大小】设置子物体大小，结合`Alignment`设置位置。
         - 如果不控制大小，只设置位置不设置大小。
 - 如果局方向与当前计算轴相同（例如水平布局计算其宽度和水平方向位置时）：
-    - 通过RectTransform的Size和总的preferred得知有无剩余空间。
-        - 如果有剩余，且总flexible大于0，说明有子物体可扩展。计算：扩展单位值=剩余空间/总flexible。
-        - 如果flexible等于0，说明无子物体可扩展。结合padding计算起始位置（有扩展会填充满就不用计算起始位置）。
-    - 计算子物体min和preferred的插值因子：
-        - 如果总min不等于总preferred，值=Clamp01(总体与总min的差/总preferred与总min的差)。其意义在于：当总min在总体内，而总preferred超出总体时，选一个min和preferred之间恰当的插值使所有子项尽量填满总体。
-        - 如果总min等于总preferred，值=0
+    - 通过`RectTransform`的`Size`和总的`preferred`得知有无剩余空间。
+        - 如果有剩余，且总`flexible`大于0，说明有子物体可扩展。计算：扩展单位值=剩余空间/总`flexible`。
+        - 如果`flexible`等于0，说明无子物体可扩展。结合`padding`计算起始位置（有扩展会填充满就不用计算起始位置）。
+    - 计算子物体`min`和`preferred`的插值因子：
+        - 如果总`min`不等于总`preferred`，值=`Clamp01`(总体与总`min`的差/总`preferred`与总`min`的差)。其意义在于：当总`min`在总体内，而总`preferred`超出总体时，选一个`min`和`preferred`之间恰当的插值使所有子项尽量填满总体。
+        - 如果总`min`等于总`preferred`，值=0
     - 计算子物体的`min`、`preferred`、`flexible`（与上面逻辑相同）
-    - 计算其【强制大小】：先在min、preferred间插值，再加上flexible乘以扩展单位值。
-    - 如果控制大小（controlSize），用【强制大小】设置子物体大小，结合Alignment设置位置。
+    - 计算其【强制大小】：先在`min`、`preferred`间插值，再加上`flexible`乘以扩展单位值。
+    - 如果控制大小（`controlSize`），用【强制大小】设置子物体大小，结合`Alignment`设置位置。
     - 如果不控制大小，只设置位置不设置大小。
     - 累加位置偏移。
 
 ***
 ## Image
-Image是常用的图片显示组件，其实现ILayoutElement接口，是一个被布局元素。
-它的CalculateLayoutInputHorizontal和CalculateLayoutInputVertical均是空方法，min返回0，preferred返回其精灵的大小（拉伸图仅为其两边border之和），flexible返回-1。
+`Image`是常用的图片显示组件，其实现`ILayoutElement`接口，是一个被布局元素。
+它的`CalculateLayoutInputHorizontal`和`CalculateLayoutInputVertical`均是空方法，`min`返回0，`preferred`返回其精灵的大小（拉伸图仅为其两边`border`之和），`flexible`返回-1。
 它的布局所需信息是比较简单的。
 ***
 ## Text
-Image是常用的文本显示组件，其实现ILayoutElement接口，是一个被布局元素。
-它的CalculateLayoutInputHorizontal和CalculateLayoutInputVertical均是空方法。
-min返回0，
-preferred则计算当前文本的preferred值：
-- 生成一个TextGenerationSettings对象，指定其文本绘制范围无限制（Vector2.zero），将关于自身字体、字号、颜色、间距、对齐等全部信息赋值给settings对象。
-- 创建一个TextGenerator对象，调用其GetPreferredWidth\GetPreferredHeight方法，该方法传入文本和settings，得到文本在当前组件设置下的perferred值。该类未公开部分源码。
+`Text`是常用的文本显示组件，其实现`ILayoutElement`接口，是一个被布局元素。
+它的`CalculateLayoutInputHorizontal`和`CalculateLayoutInputVertical`均是空方法。
+`min`返回0，
+`preferred`则计算当前文本的`preferred`值：
+- 生成一个`TextGenerationSettings`对象，指定其文本绘制范围无限制（`Vector2.zero`），将关于自身字体、字号、颜色、间距、对齐等全部信息赋值给`settings`对象。
+- 创建一个`TextGenerator`对象，调用其`GetPreferredWidth\GetPreferredHeight`方法，该方法传入文本和`settings`，得到文本在当前组件设置下的`perferred`值。该类未公开部分源码。
 
-flexible返回-1。
+`flexible`返回-1。
 ***
 ## LayoutElement
 这个组件比较简单，就是单纯的为了给使用者一个重载`ILayoutElement`的机会。因为它也实现接口`ILayoutElement`并且所有属性字段都是直接赋值的。
