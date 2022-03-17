@@ -37,6 +37,16 @@
 那么，既然它是`Graphic`的布局逻辑而又分离在了一个单独的类，那它俩是如何联系起来的呢？答案就是它的静态方法：`MarkLayoutForRebuild(RectTransform rect)`。
 当一个`Graphic`认为自己需要重建布局时(`transform`变化，字体变化等)它会调用这个方法，方法内部创建一个`LayoutRebuilder`实例并把自己注册进`CanvasUpdateRegistry`中，因此将会在合适时机执行它的`Rebuild`方法。
 
+#### MarkLayoutForRebuild方法的细节
+它接受一个`RectTransform`，然后它从这个`RectTransform`向其根方向寻找【布局根节点】，最后对布局根节点生成一个`LayoutRebuilder`实例注册到`CanvasUpdateRegistry`中。
+何谓布局根节点？
+它是传入节点本身或其父节点，并且满足如下条件：
+- 布局根节点上有活动的`ILayoutGroup`组件。
+- 布局根节点到传入节点之间的每个节点上都有活动的`ILayoutGroup`组件。
+- 布局根节点的父节点上没有活动的`ILayoutGroup`组件。
+
+因此可能存在找不到布局根节点的情况，这种情况就说明传入节点不会参与自动布局。因此这种情况下`MarkLayoutForRebuild`函数不会执行实际操作。
+
 #### Rebuild方法
 ##### 参与布局的各类实体概念
 画布元素的布局重构是比较复杂的，`UGUI`的各类`LayoutGroup`、`Fitter`、`ScrollRect`、`Text`、`Image`都是在这个方法里处理。从接口上划分，主要分为三类：
