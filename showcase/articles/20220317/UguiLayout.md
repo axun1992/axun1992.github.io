@@ -1,0 +1,86 @@
+[toc]
+
+# UGUI布局
+## 前言
+这篇文章是在前文*UGUI渲染分析*的基础上，进一步探究UGUI中实际使用的几种自动布局组件的原理。
+据前文的分类，实际上可以分为以下几类，并各选一些代表出来进行分析：
+|类型|说明|分析例子|
+|:-|:-|:-|
+|实现`ILayoutSelfController`接口|会改变自身，各类`Fitter`|`ContentSizeFitter`|
+|实现`ILayoutGroup`和`ILayoutElement`接口|既被布局又会改变子物体，各类`LayoutGroup`、`ScrollRect`|`HorizontalLayoutGroup`|
+|实现`ILayoutElement`接口|被布局，常见的各种UI元素|`Image`、`Text`、`LayoutElement`|
+***
+## ContentSizeFitter
+这个组件根据它的内容调整`RectTransform`的大小。
+它包含两个`FitMode`字段用以标识在水平和竖直方向如何调整其大小，`FitMode`枚举定义如下：
+|值|说明|
+|:-|:-|
+|Unconstrained|不调整大小|
+|MinSize|调整为内容的最小尺寸|
+|PreferredSize|调整为内容的首选大小|
+
+它实现了接口`ILayoutSelfController`，因此它向布局系统表明它是一个修改自身`RectTransform`的布局控制器。
+它由`LayoutRebuild`调用的的`SetLayoutVertical`和`SetLayoutHorizontal`方法最终都会走到`HandleSelfFittingAlongAxis`方法，只是分别计算宽和高。
+内部最终使用`LayoutUtility.GetMinSize`计算最小尺寸，使用`LayoutUtility.GetPreferredSize`计算首选尺寸。它们的逻辑也是近似的，一起讲解：
+- 它获取目标`RectTransform`上的所有`ILayoutElement`组件，从中找出活动状态且布局优先级最高的一个，从中读取字段（如果优先级相同，取值更大的）。
+- 对于`GetMinSize`，读取`minXXX`字段。
+- 对于`GetPreferredSize`，读取`minXXX`和`preferredXXX`字段并取两者较大值。
+- 将计算得到的值设置到`RectTransform`的`Size`里。
+### 何种情况下触发布局重建请求？
+除了`Graphic`会在一些情况下触发布局重建请求外（参见之前文章：UGUI渲染分析），`ContentSizeFitter`也会在以下情况触发布局重建请求：
+- 修改`FitMode`时
+- 启\禁用时
+- `RectTransform`尺寸变化时
+
+当然，我们也可以手动调用`LayoutRebuilder.MarkLayoutForRebuild`。
+***
+## HorizontalLayoutGroup
+这是水平自动布局组件，与它相似的还有竖直布局、表格布局等，这里只以它为代表进行分析。按照`LayoutRebuilder`的逻辑，会先驱动`ILayoutElement`后驱动`ILayoutGroup`，因此我们按此顺序分析。
+### ILayoutElement部分
+这个部分无论水平或竖直都走到其父类的`CalcAlongAxis`方法，它计算，具体逻辑如下：
+- 计算每一个子`RectTransform`的`min`、`preferred`、`flexible`尺寸。
+    - 如果不控制子物体尺寸，`min`等于`preferred`等于其`sizeDelta`，`flexible`等于0.
+    - 如果控制子物体尺寸(`controlSize`)，`min`、`preferred`、`flexible`等于其`ILayoutElement`的`min`、`preferred`、`flexible`。
+    - 然后如果子物体强制填充剩余空间(`childForceExpand`)，`flexible`等于1。
+- 累加得到总的`min`、`preferred`、`flexible`尺寸并记录下来。
+### ILayoutGroup部分
+这个部分无论水平或竖直都走到其父类的SetChildrenAlongAxis方法，它设置子布局元素的位置和大小，具体逻辑如下：
+- 如果布局方向与当前计算轴不同（例如水平布局计算其高度和竖直方向位置时）：
+    - 通过自身RectTransform大小和padding计算出子元素在该轴方向的【强制大小】。
+    - 对每个子元素设置该轴向上位置和大小。
+        - 计算子物体的`min`、`preferred`、`flexible`（与上面逻辑相同）
+        - 将【强制大小】限制到子物体的min和preferred（如果flexible不为0则是自身大小）之间。
+        - 如果控制大小（controlSize），用【强制大小】设置子物体大小，结合Alignment设置位置。
+        - 如果不控制大小，只设置位置不设置大小。
+- 如果局方向与当前计算轴相同（例如水平布局计算其宽度和水平方向位置时）：
+    - 通过RectTransform的Size和总的preferred得知有无剩余空间。
+        - 如果有剩余，且总flexible大于0，说明有子物体可扩展。计算：扩展单位值=剩余空间/总flexible。
+        - 如果flexible等于0，说明无子物体可扩展。结合padding计算起始位置（有扩展会填充满就不用计算起始位置）。
+    - 计算子物体min和preferred的插值因子：
+        - 如果总min不等于总preferred，值=Clamp01(总体与总min的差/总preferred与总min的差)。其意义在于：当总min在总体内，而总preferred超出总体时，选一个min和preferred之间恰当的插值使所有子项尽量填满总体。
+        - 如果总min等于总preferred，值=0
+    - 计算子物体的`min`、`preferred`、`flexible`（与上面逻辑相同）
+    - 计算其【强制大小】：先在min、preferred间插值，再加上flexible乘以扩展单位值。
+    - 如果控制大小（controlSize），用【强制大小】设置子物体大小，结合Alignment设置位置。
+    - 如果不控制大小，只设置位置不设置大小。
+    - 累加位置偏移。
+
+***
+## Image
+Image是常用的图片显示组件，其实现ILayoutElement接口，是一个被布局元素。
+它的CalculateLayoutInputHorizontal和CalculateLayoutInputVertical均是空方法，min返回0，preferred返回其精灵的大小（拉伸图仅为其两边border之和），flexible返回-1。
+它的布局所需信息是比较简单的。
+***
+## Text
+Image是常用的文本显示组件，其实现ILayoutElement接口，是一个被布局元素。
+它的CalculateLayoutInputHorizontal和CalculateLayoutInputVertical均是空方法。
+min返回0，
+preferred则计算当前文本的preferred值：
+- 生成一个TextGenerationSettings对象，指定其文本绘制范围无限制（Vector2.zero），将关于自身字体、字号、颜色、间距、对齐等全部信息赋值给settings对象。
+- 创建一个TextGenerator对象，调用其GetPreferredWidth\GetPreferredHeight方法，该方法传入文本和settings，得到文本在当前组件设置下的perferred值。该类未公开部分源码。
+
+flexible返回-1。
+***
+## LayoutElement
+这个组件比较简单，就是单纯的为了给使用者一个重载`ILayoutElement`的机会。因为它也实现接口`ILayoutElement`并且所有属性字段都是直接赋值的。
+因此我们可以用它把宽、高类属性设为想要的值，并把它的布局优先级设为同节点所有`ILayoutElement`组件里最高，那么布局控制器类组件就会取到它的值，从而起到覆盖的作用。

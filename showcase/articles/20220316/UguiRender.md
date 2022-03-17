@@ -63,7 +63,7 @@
 
 首先
 以目标`RectTransform`为层级树的根，后序遍历该树，对每个节点：
-- 如果既无`ILayoutElement`也无`ILayoutGroup`，不再向下计算。
+- 如果既无`ILayoutElement`也无`LayoutGroup`，不再向下计算。
 - 调用`CalculateLayoutInputHorizontal`以计算其水平方向数据。
 
 然后
