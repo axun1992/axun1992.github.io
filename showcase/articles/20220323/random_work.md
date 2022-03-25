@@ -5,7 +5,7 @@
 这里介绍在Unity3D的三维空间中作随机运动的计算方法。
 这是对“随机游走”术语概念在三维移动上的具体应用。
 ## 效果
-[![Watch the video](../common_image/video.jpg)](./random_move.mp4)
+[![Watch the video](./random_move.gif)](./random_move.mp4)
 以上视频演示了随机运动和趋于某个点运动。
 ## 主要思路
 本文的实现主要基于柏林噪声（Perlin Noise）。柏林噪声本质上是一个随机数生成器，只不过它和完全随机不同，在输入连续的时候，输出也是较为连续的。
