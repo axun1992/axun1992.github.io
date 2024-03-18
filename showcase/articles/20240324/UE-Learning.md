@@ -39,3 +39,9 @@ set ProjPath=F:\work\led_huagongchang\HuaGongChangProj
 |源代码|`/Script/[项目名].[类名]`|
 |插件蓝图|`/[插件名]/[相对于插件Content的路径]`|
 |插件源代码|`/Script/[插件名].[类名]`|
+
+## 蓝图的多态
+两个蓝图之间为继承关系的话，经测试有这些结论：
+- 子类重载的函数具有虚函数的行为。
+- 对于预设的Event，子类的Event会覆盖父类的同名Event。
+- 对于用户自定义Event，子类不能再重新定义，可以直接使用父类Event，具有虚函数行为。
