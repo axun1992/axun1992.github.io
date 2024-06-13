@@ -69,12 +69,12 @@ disqus: false
 #
 # Localizations.
 #
-str_next: Next
-str_prev: Prev
-str_read_more: Read more...
-str_search: Search
-str_recent_posts: Recent posts
-str_show_all_posts: Show all posts
+str_next: 下一页
+str_prev: 上一页
+str_read_more: 阅读更多...
+str_search: 搜索
+str_recent_posts: 最近文章
+str_show_all_posts: 显示所有文章
 
 #
 # Recent posts.
