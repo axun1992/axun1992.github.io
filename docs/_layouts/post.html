@@ -8,6 +8,7 @@ layout: default
         {% include toc.html html=content class='toc' %}
         <section class="post-content">
             {{ content }}
+            {% include licence.html %}
         </section>
         {% include article-footer.html page=page share=page.share %}
     </article>
