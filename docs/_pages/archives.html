@@ -5,8 +5,10 @@ permalink: /archives/
 order: 3
 share: false
 ---
-
+<!--请注意：site.posts是倒序，post.next又是正序-->
+{% assign count = 0 %}
 {% for post in site.posts %}
+    {% assign count = count | plus: 1 %}
     {% unless post.next %}
         <h3>{{ post.date | date: '%Y' }}</h3>
         <ul>
@@ -14,17 +16,24 @@ share: false
         {% assign year = post.date | date: '%Y' %}
         {% assign next_year = post.next.date | date: '%Y' %}
         {% if year != next_year %}
-        </ul>
-        <h3>{{ post.date | date: '%Y' }}</h3>
-        <ul>
+            </ul>
+            <h3>{{ post.date | date: '%Y' }}</h3>
+            <ul>
         {% endif %}
     {% endunless %}
-
-    {% assign month = post.date | date: '%m' %}
-    {% assign next_month = post.next.date | date: '%m' %}
-    {% if year != next_year or month != next_month %}
-    <li><a href="{{ '/search/?d=' | prepend: site.baseurl }}{{ post.date | date: '%Y-%m' }}">{{ post.date | date: '%Y/%m' }}</a></li>
-    {% endif %}
+    
+    {% unless post.previous %}
+        <li><a href="{{ '/search/?d=' | prepend: site.baseurl }}{{ post.date | date: '%Y-%m' }}">{{ post.date | date: '%Y/%m' }}&nbsp;&nbsp;({{ count }})</a></li>
+    {% else %}
+        {% assign year = post.date | date: '%Y' %}
+        {% assign month = post.date | date: '%m' %}
+        {% assign pre_year = post.previous.date | date: '%Y' %}
+        {% assign pre_month = post.previous.date | date: '%m' %}
+        {% if year != pre_year or month != pre_month %}
+            <li><a href="{{ '/search/?d=' | prepend: site.baseurl }}{{ post.date | date: '%Y-%m' }}">{{ post.date | date: '%Y/%m' }}&nbsp;&nbsp;({{ count }})</a></li>
+            {% assign count = 0 %}
+        {% endif %}
+    {% endunless %}
 {% endfor %}
 
 {% if site.posts %}
