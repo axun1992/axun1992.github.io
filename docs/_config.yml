@@ -63,8 +63,8 @@ permalink: pretty
 #
 # Scripts.
 #
-google_analytics: # e.g. UA-000000-01
-disqus: false
+google_analytics: G-FMHM4PEMD4 # e.g. UA-000000-01
+disqus: true
 
 #
 # Localizations.
