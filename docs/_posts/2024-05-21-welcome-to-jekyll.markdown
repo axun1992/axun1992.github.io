@@ -4,6 +4,7 @@ title:  "Welcome to Jekyll!"
 tags: sample
 date:   2024-05-21 14:50:27 +0800
 categories: jekyll update
+x_post_type: "转载"
 ---
 You’ll find this post in your `_posts` directory. Go ahead and edit it and re-build the site to see your changes. You can rebuild the site in many different ways, but the most common way is to run `jekyll serve`, which launches a web server and auto-regenerates your site when a file is updated.
 

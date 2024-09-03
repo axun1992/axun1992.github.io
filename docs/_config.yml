@@ -141,3 +141,12 @@ sass:
 #   - vendor/ruby/
 exclude:
   - TestLocally.bat
+
+defaults:
+  -
+    scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"
+      x_post_type: "原创"
