@@ -106,6 +106,7 @@ plugins:
   - jekyll-feed
   - jekyll-paginate
   - jemoji
+  - jekyll-sitemap
 
 include: ["_pages"]
 
