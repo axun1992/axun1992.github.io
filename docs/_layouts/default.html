@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="{{ site.language }}">
 <head>
+    {% include google-analytics.html %}
     {% capture title %}{% if page.title %}{{ page.title }} | {% endif %}{{ site.title }}{% endcapture %}
 
     {% include page-url-resolver.html page=page %}
@@ -47,7 +48,7 @@
 
     <link href="{{ '/assets/css/style.css' | prepend: site.baseurl }}" rel="stylesheet">
 </head>
-{% include google-analytics.html %}
+
 <body>
 
 <header class="site-header">
