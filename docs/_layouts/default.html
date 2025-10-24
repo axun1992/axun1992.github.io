@@ -83,9 +83,9 @@
                 <ul>
                     {% assign pages = site.pages | sort: 'order' %}
                     {% for page in pages %}
-                    {% if page.title and page.hide != true %}
-                    <li><a class="page-link" href="{{ page.url | prepend: site.baseurl }}">{{ page.title }}</a></li>
-                    {% endif %}
+                        {% if page.title and page.hide != true %}
+                            <li><a class="page-link" href="{{ page.url | prepend: site.baseurl }}">{{ page.title }}</a></li>
+                        {% endif %}
                     {% endfor %}
                 </ul>
                 <ul class="icons">
@@ -101,7 +101,7 @@
 
                         {% for post in site.posts %}
                             {% if post.hide != true %}
-                                {% if post.pin == true %}
+                                {% if post.pin %}
                                     {% assign pin_posts = pin_posts | push: post %}
                                 {% else %}
                                     {% assign posts = posts | push: post %}
@@ -112,12 +112,13 @@
                         {% assign pin_posts = pin_posts | sort: 'pin' | reverse %}
                         {% assign posts = posts | sort: 'date' | reverse %}
 
+                        {% assign left_num = site.recent_posts_num %}
                         {% for post in pin_posts limit:site.recent_posts_num %}
-                            <li><a href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a></li>
+                            {% assign left_num = left_num | decrement %}
+                            <li><a href="{{ post.url | prepend: site.baseurl }}">[置顶] {{ post.title }}</a></li>
                         {% endfor %}
 
-                        {% assign pin_num = pin_posts | size %}
-                        {% for post in posts limit:site.recent_posts_num - pin_num %}
+                        {% for post in posts limit:left_num %}
                             <li><a href="{{ post.url | prepend: site.baseurl }}">{{ post.title }}</a></li>
                         {% endfor %}
                     </ul>
