@@ -1,6 +1,6 @@
 ---
 title:  "解决jeklly构建和MarkDownPreviewEnhanced预览的图片路径差异"
-tags: ue
+tags: markdown
 ---
 在jeklly构建后的页面中，图片以根目录为相对目录，  
 而在用MarkDownPreviewEnhanced插件本地直接预览md文件时，是以md所在目录为相对目录，  
