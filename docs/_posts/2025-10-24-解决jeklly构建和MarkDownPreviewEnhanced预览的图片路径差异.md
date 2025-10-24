@@ -10,9 +10,10 @@ tags: ue
 显然jeklly那边不宜改动，因为我们最终目的还是要构建成网页显示。不过我们也同时希望拥有实时的本地md预览来查看编写的文档内容。  
 
 这其实可以通过对MarkDownPreviewEnhanced适当设置来协调两者，那就是使用其“扩展解析器”的功能。  
-以windows+vscode为例，方法如下：  
+## 解决方法，以windows+vscode为例：  
 1. ctrl+shift+p调出命令框，执行Markdown Preview Enhanced: Extend Parser (Workspace)，将会在根目录创建.crossnote文件夹。  
-2. 打开.crossnote文件夹中的parser.js文件，修改其onWillParseMarkdown函数：
+2. 打开.crossnote文件夹中的parser.js文件，修改其onWillParseMarkdown函数：  
+
 ```js
 ({
   // Please visit the URL below for more information:
@@ -27,11 +28,12 @@ tags: ue
   },
 })
 ```   
+
 3. 重启vscode后，应该在预览md时可以正常显示图片了。
 
 ![测试图片](/assets/img/ogp.png)
 
-详细说明：  
+## 详细说明：  
 在上面的方法中，重写了MarkDownPreviewEnhanced的解析器预处理阶段函数，把md文本中的图片路径修改为以md所在目录为相对目录的形式，使得预览时可以找到图片资产。  
 正则表达式：`/(\()(\/assets)(\/[^"'\)]+\))/gm`匹配形如`(/assets/img/ogp.png)`这样的路径，并把其分为三个捕获组：  
 - `(`
